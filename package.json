@@ -1,7 +1,7 @@
 {
   "name": "task-management-api",
   "version": "1.0.0",
-  "description": "CRUD REST API for a Task Management System using Node.js, Express, SQLite, and Knex.",
+  "description": "CRUD task manager deployed on Netlify with Functions and Netlify Database.",
   "main": "src/app.js",
   "scripts": {
     "start": "node src/app.js",
@@ -11,14 +11,28 @@
     "seed": "node seed.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["express", "sqlite", "knex", "crud", "rest-api", "tasks"],
+  "keywords": [
+    "netlify",
+    "functions",
+    "postgres",
+    "drizzle",
+    "crud",
+    "rest-api",
+    "tasks"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@netlify/database": "^1.1.0",
+    "@netlify/functions": "^5.3.0",
+    "drizzle-orm": "^1.0.0-beta.22",
     "express": "^5.2.1",
     "joi": "^18.2.3",
     "knex": "^3.3.0",
     "sqlite3": "^6.0.1"
+  },
+  "devDependencies": {
+    "drizzle-kit": "^1.0.0-beta.22"
   }
 }

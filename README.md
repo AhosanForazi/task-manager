@@ -1,32 +1,38 @@
 # Task Management API
 
-A small but complete **CRUD REST API** for a Task Management System, built with **Node.js + Express + SQLite + Knex**, with **Joi** input validation.
+A small but complete **CRUD task manager** with a static frontend, Netlify Functions API, and Netlify Database persistence.
 
 ## Tech stack
 
 | Layer       | Choice                                                |
 |-------------|--------------------------------------------------------|
-| Runtime     | Node.js (CommonJS)                                     |
-| HTTP        | Express 5                                              |
-| Database    | SQLite (file-based, `tasks.db` in project root)        |
-| ORM / Query | Knex 3                                                 |
-| Validation  | Joi                                                    |
+| Hosting     | Netlify static deploy from `public/`                   |
+| API         | Netlify Functions                                      |
+| Database    | Netlify Database, backed by managed Postgres           |
+| ORM / Query | Drizzle ORM                                            |
+| Validation  | Function-level request validation                      |
 
 ## Project layout
 
 ```
 .
 ├── knexfile.js
+├── netlify.toml
 ├── package.json
 ├── seed.js
-├── tasks.db                       # created on first migrate
 ├── README.md
-├── public/                        # static UI served by Express at /
+├── db
+│   ├── index.ts                   # Netlify Database Drizzle client
+│   └── schema.ts                  # Drizzle table definitions
+├── netlify
+│   ├── database/migrations        # migrations applied by Netlify
+│   └── functions/tasks.ts         # /api/tasks serverless API
+├── public/                        # static UI published by Netlify
 │   ├── index.html
 │   ├── styles.css
 │   └── app.js
 └── src
-    ├── app.js                     # Express app entry point (also serves /public)
+    ├── app.js                     # legacy local Express app
     ├── controllers
     │   ├── taskController.js
     │   └── taskValidator.js       # Joi schemas
@@ -35,7 +41,7 @@ A small but complete **CRUD REST API** for a Task Management System, built with 
     ├── routes
     │   └── taskRoutes.js
     └── db
-        ├── knex.js                # shared Knex instance
+        ├── knex.js                # legacy local Knex instance
         └── migrations
             └── 20260101000000_create_tasks_table.js
 ```
@@ -58,27 +64,21 @@ A small but complete **CRUD REST API** for a Task Management System, built with 
 ```bash
 # 1. Install dependencies
 npm install
-
-# 2. Run migrations (creates tasks.db + the tasks table)
-npm run migrate
-
-# 3. Seed five sample tasks
-npm run seed
 ```
 
-## Run the server
+Netlify applies the SQL files in `netlify/database/migrations/` during deploy. The database is provisioned automatically on first connection.
+
+## Run locally with Netlify
 
 ```bash
-npm start
-# Task Management API listening on http://localhost:3000
+/opt/buildhome/node-deps/node_modules/.bin/netlify dev --port 8889
 ```
 
-You can also use `npm run dev` — it's the same command.
+The static site and `/api/tasks` function are both available through the Netlify dev server.
 
 ## Web UI
 
-A polished single-page UI ships in `public/`. Once the server is running, open
-**http://localhost:3000/** in a browser.
+A polished single-page UI ships in `public/`. On Netlify, `public/` is the published directory and the UI calls `/api/tasks`.
 
 Features:
 
@@ -119,18 +119,18 @@ Status codes used: `200`, `201`, `204`, `400`, `404`, `500`.
 
 ## Curl examples
 
-Every example below assumes the server is running on `http://localhost:3000`.
+Every example below assumes the Netlify dev server is running on `http://localhost:8889`.
 
 ### 1. List all tasks — `GET /api/tasks`
 
 ```bash
-curl -X GET http://localhost:3000/api/tasks
+curl -X GET http://localhost:8889/api/tasks
 ```
 
 ### 2. Get a single task — `GET /api/tasks/:id`
 
 ```bash
-curl -X GET http://localhost:3000/api/tasks/1
+curl -X GET http://localhost:8889/api/tasks/1
 ```
 
 ### 3. Create a task — `POST /api/tasks`
@@ -138,7 +138,7 @@ curl -X GET http://localhost:3000/api/tasks/1
 `title` is required. `description` is optional. `status` is optional and defaults to `pending`; valid values are `pending`, `in_progress`, `done`.
 
 ```bash
-curl -X POST http://localhost:3000/api/tasks \
+curl -X POST http://localhost:8889/api/tasks \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Write integration tests",
@@ -150,7 +150,7 @@ curl -X POST http://localhost:3000/api/tasks \
 Minimal valid body (only `title`):
 
 ```bash
-curl -X POST http://localhost:3000/api/tasks \
+curl -X POST http://localhost:8889/api/tasks \
   -H "Content-Type: application/json" \
   -d '{"title": "Quick note"}'
 ```
@@ -160,13 +160,13 @@ curl -X POST http://localhost:3000/api/tasks \
 Send only the fields you want to change. At least one field is required.
 
 ```bash
-curl -X PUT http://localhost:3000/api/tasks/1 \
+curl -X PUT http://localhost:8889/api/tasks/1 \
   -H "Content-Type: application/json" \
   -d '{"status": "done"}'
 ```
 
 ```bash
-curl -X PUT http://localhost:3000/api/tasks/2 \
+curl -X PUT http://localhost:8889/api/tasks/2 \
   -H "Content-Type: application/json" \
   -d '{
     "title": "Design tasks table schema (v2)",
@@ -177,14 +177,14 @@ curl -X PUT http://localhost:3000/api/tasks/2 \
 ### 5. Delete a task — `DELETE /api/tasks/:id`
 
 ```bash
-curl -X DELETE http://localhost:3000/api/tasks/3
+curl -X DELETE http://localhost:8889/api/tasks/3
 # HTTP/1.1 204 No Content
 ```
 
 ### 6. Validation failure example
 
 ```bash
-curl -X POST http://localhost:3000/api/tasks \
+curl -X POST http://localhost:8889/api/tasks \
   -H "Content-Type: application/json" \
   -d '{}'
 ```
@@ -199,7 +199,7 @@ curl -X POST http://localhost:3000/api/tasks \
 ### 7. Not-found example
 
 ```bash
-curl -X GET http://localhost:3000/api/tasks/999
+curl -X GET http://localhost:8889/api/tasks/999
 ```
 
 ```json
@@ -210,11 +210,11 @@ curl -X GET http://localhost:3000/api/tasks/999
 
 | Script              | What it does                                       |
 |---------------------|----------------------------------------------------|
-| `npm start`         | Start the API on `PORT` (default `3000`)           |
-| `npm run dev`       | Same as `start` (alias)                            |
-| `npm run migrate`   | Apply pending Knex migrations                      |
-| `npm run rollback`  | Roll back the most recent migration batch          |
-| `npm run seed`      | Reset the `tasks` table and insert 5 sample rows   |
+| `npm start`         | Start the legacy local Express API on `PORT`       |
+| `npm run dev`       | Same as `start` (legacy local Express API)         |
+| `npm run migrate`   | Apply legacy Knex migrations                       |
+| `npm run rollback`  | Roll back legacy Knex migrations                   |
+| `npm run seed`      | Reset the legacy SQLite `tasks` table              |
 
 ## Notes & assumptions
 
