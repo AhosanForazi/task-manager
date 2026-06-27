@@ -58,8 +58,9 @@ app.use((err, _req, res, _next) => {
 });
 
 const PORT = process.env.PORT || 3000;
+
 app.listen(PORT, () => {
-  console.log(`Task Management API listening on http://localhost:${PORT}`);
+  console.log(`API running on port ${PORT}`);
 });
 
 module.exports = app;
