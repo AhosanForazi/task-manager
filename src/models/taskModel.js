@@ -14,8 +14,11 @@ function findById(id) {
 }
 
 async function create({ title, description = null, status = 'pending' }) {
-  const [id] = await db(TABLE).insert({ title, description, status });
-  return db(TABLE).where({ id }).first();
+  const [task] = await db(TABLE)
+    .insert({ title, description, status })
+    .returning('*');
+
+  return task;
 }
 
 async function update(id, fields) {
