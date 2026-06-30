@@ -13,14 +13,12 @@ function findById(id) {
   return db(TABLE).where({ id }).first();
 }
 
-function create({ title, description = null, status = 'pending' }) {
-  return db(TABLE)
-    .insert({ title, description, status })
-    .returning('*')
-    .then((rows) => rows[0]);
+async function create({ title, description = null, status = 'pending' }) {
+  const [id] = await db(TABLE).insert({ title, description, status });
+  return db(TABLE).where({ id }).first();
 }
 
-function update(id, fields) {
+async function update(id, fields) {
   // Only allow whitelisted columns to be updated.
   const allowed = ['title', 'description', 'status'];
   const patch = {};
@@ -29,11 +27,9 @@ function update(id, fields) {
   }
   patch.updated_at = db.fn.now();
 
-  return db(TABLE)
-    .where({ id })
-    .update(patch)
-    .returning('*')
-    .then((rows) => rows[0]);
+  const count = await db(TABLE).where({ id }).update(patch);
+  if (!count) return null;
+  return db(TABLE).where({ id }).first();
 }
 
 function remove(id) {
